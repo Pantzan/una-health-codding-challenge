@@ -1,0 +1,5 @@
+[
+  {"model": "unaapp.user", "pk": 1, "fields": {"name": "aaa"}},
+  {"model": "unaapp.user", "pk": 2, "fields": {"name": "bbb"}},
+  {"model": "unaapp.user", "pk": 3, "fields": {"name": "ccc"}}
+]
