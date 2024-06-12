@@ -30,22 +30,9 @@ class GlucoseMetric(models.Model):
     serial_number = models.CharField(max_length=50, null=False, blank=False)
     device_timestamp = models.DateTimeField()
     recording_type = models.PositiveIntegerField(choices=RECORDING_TYPES)
-    glucose_value_ml = models.IntegerField(
-        null=True,
-        blank=True,
-        validators=[
-            MinValueValidator(limit_value=-1),
-            MaxLengthValidator(limit_value=300)
-        ]
-    )
-    glucose_scan_ml = models.IntegerField(
-        null=True,
-        blank=True,
-        validators=[
-            MinValueValidator(limit_value=-1),
-            MaxLengthValidator(limit_value=300)
-        ]
-    )
+    glucose_value_ml = models.IntegerField(null=True, blank=True)
+    glucose_scan_ml = models.IntegerField(null=True, blank=True)
+
     # other fields emitted for simplicity
 
     def __str__(self):
