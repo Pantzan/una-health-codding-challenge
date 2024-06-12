@@ -95,7 +95,7 @@ class GetGlucoseLevelsByUser(generics.ListAPIView):
 
         queryset = GlucoseMetric.objects.filter(report__user__name=user)
         if sort in ['device', 'recording_type', 'serial_number']:
-            queryset = queryset.order_by(-sort)
+            queryset = queryset.order_by(f'-{sort}')
         else:
             queryset = queryset.order_by('glucose_value_ml')
 
