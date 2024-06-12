@@ -4,8 +4,14 @@ from unaapp.models import GlucoseMetric
 
 
 class GlucoseMetricSerializer(serializers.ModelSerializer):
+    report = serializers.SerializerMethodField('get_report')
+
     class Meta:
         model = GlucoseMetric
+        fields = '__all__'
+
+    def get_report(self, obj):
+        return f'{obj.report.user.name} - {obj.report.timestamp}'
 
 
 class CreateUserGlucoseMetricsSerializer(serializers.Serializer):

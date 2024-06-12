@@ -11,6 +11,9 @@ class UserReport(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reports')
     timestamp = models.DateTimeField(null=False)
 
+    def __str__(self):
+        return f'{self.user} - {self.timestamp}'
+
 
 class GlucoseMetric(models.Model):
     RECORDING_TYPES = {

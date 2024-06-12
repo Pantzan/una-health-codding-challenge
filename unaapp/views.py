@@ -66,5 +66,39 @@ class CreateUserMetrics(generics.CreateAPIView):
             GlucoseMetric.objects.bulk_create([
                 GlucoseMetric(**row, report=user_report_obj) for _, row in data.iterrows()]
             )
-        file_obj.close()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+
+            file_obj.close()
+            return Response(status=status.HTTP_201_CREATED)
+
+
+class GetGlucoseLevelsByUser(generics.ListAPIView):
+    serializer_class = GlucoseMetricSerializer
+
+    def get_queryset(self):
+        """
+        We use simple filtering for simplicity. In real scenario django-filters is the right tool to handle
+        sorting and filtering
+        """
+
+        user = self.request.query_params.get("user")
+        sort = self.request.query_params.get("sort")
+        start_level = self.request.query_params.get("start", -1)
+        end_level = self.request.query_params.get("stop", -1)
+        limit = self.request.query_params.get("limit")
+
+        queryset = GlucoseMetric.objects.filter(report__user__name=user)
+        if sort in ['device', 'recording_type', 'serial_number']:
+            queryset = queryset.order_by(-sort)
+        else:
+            queryset = queryset.order_by('glucose_value_ml')
+
+        if start_level and int(start_level) > 0:
+            queryset = queryset.filter(glucose_value_ml__gte=int(start_level))
+
+        if end_level and int(end_level) > 0 and end_level > start_level:
+            queryset = queryset.filter(glucose_value_ml__lte=int(end_level))
+
+        if limit and int(limit) > 1:
+            queryset = queryset[:int(limit)]
+
+        return queryset
