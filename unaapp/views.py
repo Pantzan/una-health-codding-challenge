@@ -102,3 +102,17 @@ class GetGlucoseLevelsByUser(generics.ListAPIView):
             queryset = queryset[:int(limit)]
 
         return queryset
+
+
+class GetGlucoseLevelsById(generics.RetrieveAPIView):
+    serializer_class = GlucoseMetricSerializer
+
+    def get(self, request, *args, **kwargs):
+        glucose_level_id = self.kwargs.get("pk")
+
+        if glucose_level_id:
+            try:
+                obj = GlucoseMetric.objects.get(id=glucose_level_id)
+                return Response(GlucoseMetricSerializer(obj).data)
+            except GlucoseMetric.DoesNotExist:
+                return Response(status=status.HTTP_404_NOT_FOUND)
