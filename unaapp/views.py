@@ -67,7 +67,7 @@ class CreateUserMetrics(generics.CreateAPIView):
                 return Response(
                     status=status.HTTP_400_BAD_REQUEST, data={'error': 'The report record already exists'}
                 )
-            
+
             user_report_obj = UserReport.objects.create(user=user, timestamp=parse(metadata_dict.get('Erstellt am')))
 
             GlucoseMetric.objects.bulk_create([
@@ -109,6 +109,22 @@ class GetGlucoseLevelsByUser(generics.ListAPIView):
             queryset = queryset[:int(limit)]
 
         return queryset
+
+    def get(self, request, *args, **kwargs):
+        user_name = self.request.query_params.get("user")
+        if not user_name:
+            return Response(
+                    status=status.HTTP_400_BAD_REQUEST, data={'error': 'The user name is required'}
+            )
+        else:
+            try:
+                user = User.objects.get(name=user_name)
+            except User.DoesNotExist:
+                return Response(
+                    status=status.HTTP_400_BAD_REQUEST, data={'error': 'The user does not exist in our records'}
+                )
+        return super().get(request)
+
 
 
 class GetGlucoseLevelsById(generics.RetrieveAPIView):
