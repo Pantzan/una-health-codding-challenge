@@ -61,6 +61,13 @@ class CreateUserMetrics(generics.CreateAPIView):
                     status=status.HTTP_400_BAD_REQUEST, data={'error': 'The user does not exists in our records'}
                 )
 
+            if UserReport.objects.filter(
+                user=user, timestamp=parse(metadata_dict.get('Erstellt am'))
+            ).exists():
+                return Response(
+                    status=status.HTTP_400_BAD_REQUEST, data={'error': 'The report record already exists'}
+                )
+            
             user_report_obj = UserReport.objects.create(user=user, timestamp=parse(metadata_dict.get('Erstellt am')))
 
             GlucoseMetric.objects.bulk_create([
