@@ -1,6 +1,7 @@
+from django.core.exceptions import ValidationError
 from django.db import models
-
-from django.core.validators import MinValueValidator, MaxLengthValidator
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 
 
 class User(models.Model):
@@ -30,10 +31,19 @@ class GlucoseMetric(models.Model):
     serial_number = models.CharField(max_length=50, null=False, blank=False)
     device_timestamp = models.DateTimeField()
     recording_type = models.PositiveIntegerField(choices=RECORDING_TYPES)
-    glucose_value_ml = models.IntegerField(null=True, blank=True)
+    glucose_value_ml = models.IntegerField(null=True, blank=True, db_index=True)
     glucose_scan_ml = models.IntegerField(null=True, blank=True)
 
     # other fields emitted for simplicity
 
     def __str__(self):
         return f'{self.serial_number} - {self.device_timestamp}'
+
+
+@receiver(pre_save, sender=GlucoseMetric)
+def validate_ml_values(sender, instance, **kwargs):
+    if instance.glucose_value_ml not in range(-1, 200):
+        raise ValidationError("glucose_value_ml should be range -1 and 200")
+
+    if instance.glucose_scan_ml not in range(-1, 200):
+        raise ValidationError("glucose_value_ml should be range -1 and 200")
