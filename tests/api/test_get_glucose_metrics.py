@@ -2,8 +2,6 @@ from django.urls import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework import status
 
-from unaapp.models import User, UserReport, GlucoseMetric
-from unaapp.serializers import GlucoseMetricSerializer
 from .utils import get_sample_csv_file
 
 GET_METRICS_URL = reverse('get-glucose-levels-by-user')
@@ -63,3 +61,23 @@ def test_get_all_metrics_for_user_a_empty(db, user, client):
 
     assert response.status_code == status.HTTP_200_OK
     assert len(data) == 0
+
+
+def test_get_single_glucose_metric(db, user, glucose_metric, client):
+    user.name = "aaa"
+    user.save()
+
+    response = client.get(reverse('get-glucose-levels-by-id', args=[glucose_metric.id]))
+    data = response.json()
+
+    assert response.status_code == status.HTTP_200_OK
+    assert isinstance(data, dict)
+    assert data.get('id') == glucose_metric.id
+
+
+def test_get_single_glucose_metric__empty(db, user, glucose_metric, client):
+    user.name = "aaa"
+    user.save()
+
+    response = client.get(reverse('get-glucose-levels-by-id', args=[4]))
+    assert response.status_code == status.HTTP_404_NOT_FOUND
