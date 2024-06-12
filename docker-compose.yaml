@@ -1,0 +1,31 @@
+services:
+  db:
+    image: postgres:16
+    container_name: una-health-db
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: una_health_db
+      POSTGRES_USER: una_user
+      POSTGRES_PASSWORD: secret_password
+
+    volumes:
+      - unaapp-pgdata:/var/lib/postgresql/data
+
+  una-health-app:
+    build: .
+    container_name: una-health-app
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_HOST=una-health-db
+    command: python manage.py migrate && python manage.py runserver 0.0.0.0:8000
+    depends_on:
+      - db
+
+volumes:
+  unaapp-pgdata:
+
+
