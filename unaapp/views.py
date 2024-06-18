@@ -118,13 +118,12 @@ class GetGlucoseLevelsByUser(generics.ListAPIView):
             )
         else:
             try:
-                user = User.objects.get(name=user_name)
+                User.objects.get(name=user_name)
             except User.DoesNotExist:
                 return Response(
                     status=status.HTTP_400_BAD_REQUEST, data={'error': 'The user does not exist in our records'}
                 )
         return super().get(request)
-
 
 
 class GetGlucoseLevelsById(generics.RetrieveAPIView):
