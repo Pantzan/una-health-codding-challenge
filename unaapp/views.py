@@ -11,12 +11,47 @@ from rest_framework.response import Response
 from unaapp.serializers import CreateUserGlucoseMetricsSerializer, GlucoseMetricSerializer
 from unaapp.models import User, UserReport, GlucoseMetric
 
+from asgiref.sync import sync_to_async, async_to_sync
+import asyncio
+
 
 class CreateUserMetrics(generics.CreateAPIView):
     serializer_class = CreateUserGlucoseMetricsSerializer
     parser_classes = [MultiPartParser]
 
-    def post(self, request, *args, **kwargs):
+    # borrowed from adrf in order to demonstrate async behavior in DRF which is not yet supported (or planned)
+    # https://github.com/em1208/adrf/blob/main/adrf/views.py
+    async def dispatch(self, request, *args, **kwargs):
+        """
+        `.async_dispatch()` is pretty much the same as Django's regular dispatch,
+        except for awaiting the handler function and with extra hooks for startup,
+        finalize, and exception handling.
+        """
+        self.args = args
+        self.kwargs = kwargs
+        request = self.initialize_request(request, *args, **kwargs)
+        self.request = request
+        self.headers = self.default_response_headers
+
+        try:
+            self.initial(request, *args, **kwargs)
+
+            # Get the appropriate handler method
+            if request.method.lower() in self.http_method_names:
+                handler = getattr(self, request.method.lower(),
+                                  self.http_method_not_allowed)
+            else:
+                handler = self.http_method_not_allowed
+
+            response = await handler(request, *args, **kwargs)
+
+        except Exception as exc:
+            response = self.handle_exception(exc)
+
+        self.response = self.finalize_response(request, response, *args, **kwargs)
+        return self.response
+
+    async def post(self, request, *args, **kwargs):
         de_en_column_mapping = {
             'Gerät': 'device',
             'Seriennummer': 'serial_number',
@@ -53,29 +88,43 @@ class CreateUserMetrics(generics.CreateAPIView):
         data['device_timestamp'] = data['device_timestamp'].apply(lambda x: timezone.make_aware(parse(x)))
         data = data.astype(object).replace('', -1)
 
-        with transaction.atomic():
-            try:
-                user = User.objects.get(name=metadata_dict.get('Erstellt von'))
-            except User.DoesNotExist:
-                return Response(
-                    status=status.HTTP_400_BAD_REQUEST, data={'error': 'The user does not exists in our records'}
-                )
-
-            if UserReport.objects.filter(
-                user=user, timestamp=parse(metadata_dict.get('Erstellt am'))
-            ).exists():
-                return Response(
-                    status=status.HTTP_400_BAD_REQUEST, data={'error': 'The report record already exists'}
-                )
-
-            user_report_obj = UserReport.objects.create(user=user, timestamp=parse(metadata_dict.get('Erstellt am')))
-
-            GlucoseMetric.objects.bulk_create([
-                GlucoseMetric(**row, report=user_report_obj) for _, row in data.iterrows()]
+        file_obj.close()
+        try:
+            await asyncio.create_task(self.write_to_db(metadata_dict=metadata_dict, data=data))
+            print("--------- api call is finishing and returning")
+            return Response(status=status.HTTP_201_CREATED)
+        except ValueError as e:
+            print(e)
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST, data={'error': 'The report record already exists'}
             )
 
-            file_obj.close()
-            return Response(status=status.HTTP_201_CREATED)
+        # return Response(status.HTTP_204_NO_CONTENT)
+
+    @sync_to_async
+    def write_to_db(self, metadata_dict, data):
+        s = time.perf_counter()
+        try:
+            user = User.objects.get(name=metadata_dict.get('Erstellt von'))
+        except User.DoesNotExist:
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST, data={'error': 'The user does not exists in our records'}
+            )
+
+        if UserReport.objects.filter(
+                user=user, timestamp=parse(metadata_dict.get('Erstellt am'))
+        ).exists():
+            # debug async connections
+            pass
+            # raise ValueError("UserReport exists")
+
+        user_report_obj = UserReport.objects.create(user=user, timestamp=parse(metadata_dict.get('Erstellt am')))
+
+        GlucoseMetric.objects.bulk_create([
+            GlucoseMetric(**row, report=user_report_obj) for _, row in data.iterrows()]
+        )
+        t = round(time.perf_counter() - s, 2)
+        print(f"************ write in db finished at: {t}")
 
 
 class GetGlucoseLevelsByUser(generics.ListAPIView):
@@ -114,7 +163,7 @@ class GetGlucoseLevelsByUser(generics.ListAPIView):
         user_name = self.request.query_params.get("user")
         if not user_name:
             return Response(
-                    status=status.HTTP_400_BAD_REQUEST, data={'error': 'The user name is required'}
+                status=status.HTTP_400_BAD_REQUEST, data={'error': 'The user name is required'}
             )
         else:
             try:
