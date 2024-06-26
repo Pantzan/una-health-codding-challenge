@@ -1,7 +1,9 @@
+from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
+from django.utils.dateparse import parse_datetime
 
 
 class User(models.Model):
@@ -47,3 +49,6 @@ def validate_ml_values(sender, instance, **kwargs):
 
     if instance.glucose_scan_ml not in range(-1, 200):
         raise ValidationError("glucose_value_ml should be range -1 and 200")
+
+    if instance.id is None:
+        instance.device_timestamp = timezone.make_aware(str(instance.device_timestamp), timezone.get_current_timezone())

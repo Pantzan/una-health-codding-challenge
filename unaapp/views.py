@@ -1,9 +1,9 @@
+import time
 import io
 from dateutil.parser import parse
 
 import pandas as pd
-from django.db import IntegrityError, transaction
-from django.db import IntegrityError, transaction
+from django.utils import timezone
 from rest_framework import generics, serializers, status
 from rest_framework.parsers import JSONParser, FileUploadParser, MultiPartParser
 from rest_framework.response import Response
@@ -50,7 +50,7 @@ class CreateUserMetrics(generics.CreateAPIView):
 
         # drop unnecessary columns for the sake of this assignment
         data = data[data.columns.intersection(de_en_column_mapping.keys())].rename(columns=de_en_column_mapping)
-        data['device_timestamp'] = data['device_timestamp'].apply(lambda x: parse(x))
+        data['device_timestamp'] = data['device_timestamp'].apply(lambda x: timezone.make_aware(parse(x)))
         data = data.astype(object).replace('', -1)
 
         with transaction.atomic():

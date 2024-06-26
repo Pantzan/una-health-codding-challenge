@@ -7,6 +7,9 @@ SECRET_KEY = 'django-insecure-^5$zyxp&*()5i^57iom_z2-)kcsydd!-2rj=h^q($y_5n@5vaw
 
 DEBUG = False
 
+USE_TZ = True
+TIME_ZONE = "Europe/Berlin"
+
 ALLOWED_HOSTS = ['127.0.0.1', '0.0.0.0']
 
 INSTALLED_APPS = [
